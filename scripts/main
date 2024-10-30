@@ -76,8 +76,11 @@ pushd "$build_dir" >/dev/null
 
   pushd "${src_dir}" >/dev/null
     ${NICE} cmake -S "." -B "build" \
+      -LAH \
       -Wno-dev -Wno-deprecated \
       -DCMAKE_INSTALL_PREFIX="${INSTALL_DIR}" \
+      -DCMAKE_INSTALL_LIBDIR="lib" \
+      -DCMAKE_INSTALL_INCLUDEDIR="include" \
       -DCMAKE_BUILD_TYPE="Release" \
       -DCMAKE_VERBOSE_MAKEFILE="OFF" \
       -DCMAKE_C_FLAGS="$CFLAGS" \
@@ -95,6 +98,15 @@ pushd "$build_dir" >/dev/null
     ${NICE} cmake --build "build" --parallel="${JOBS}" 2>&1 | log "build.log"
 
     ${NICE} cmake --install "build" 2>&1 | log "build.log"
+
+    mv "${INSTALL_DIR}/include/libxml2/libxml" "${INSTALL_DIR}/include/libxml"
+    rm -rf "${INSTALL_DIR}/include/libxml2"
+
+    sed -i'' 's|-I${includedir}/libxml2|-I${includedir}|' "${INSTALL_DIR}/lib/pkgconfig/libxml-2.0.pc"
+
+    find "${INSTALL_DIR}/lib/cmake" -type f \
+      -exec sed -i'' 's|set(LIBXML2_INCLUDE_DIR    ${PACKAGE_PREFIX_DIR}/include/libxml2)|set(LIBXML2_INCLUDE_DIR    ${PACKAGE_PREFIX_DIR}/include)|g; s|INTERFACE_INCLUDE_DIRECTORIES "${_IMPORT_PREFIX}/include/libxml2"|INTERFACE_INCLUDE_DIRECTORIES "${_IMPORT_PREFIX}/include"|g' {} +
+
 
     write_version "${INSTALL_DIR}/version.txt"
     cp "build.log" "${INSTALL_DIR}/"
