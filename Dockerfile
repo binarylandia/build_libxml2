@@ -32,6 +32,7 @@ RUN set -euxo pipefail >/dev/null \
 && yum clean all >/dev/null \
 && rm -rf /var/cache/yum
 
+
 RUN set -euxo pipefail >/dev/null \
 && if [[ "$DOCKER_BASE_IMAGE" != debian* ]] && [[ "$DOCKER_BASE_IMAGE" != ubuntu* ]]; then exit 0; fi \
 && export DEBIAN_FRONTEND=noninteractive \
@@ -67,7 +68,7 @@ RUN set -euxo pipefail >/dev/null \
 && cmake --version
 
 RUN set -euxo pipefail >/dev/null \
-&& curl -fsSL "https://github.com/binarylandia/build_zlib/releases/download/zlib-1.3.1-static-20241031101352/zlib-1.3.1-static-20241031101352.tar.xz" | tar -C "/usr" -xJ \
+&& curl -fsSL "https://github.com/binarylandia/build_zlib/releases/download/zlib-1.3.1-static-20241031112952/zlib-1.3.1-static-20241031112952.tar.xz" | tar -C "/usr" -xJ \
 && ls /usr/include/zlib.h \
 && ls /usr/lib/libz.a
 

@@ -70,6 +70,7 @@ pushd "$build_dir" >/dev/null
     mv "${INSTALL_DIR}/include/libxml2/libxml" "${INSTALL_DIR}/include/libxml"
     rm -rf "${INSTALL_DIR}/include/libxml2"
 
+    sed -i "s|prefix=${INSTALL_DIR}|prefix=\$\{pcfiledir\}/../..|g" "${INSTALL_DIR}/lib/pkgconfig/libxml-2.0.pc"
     sed -i'' 's|-I${includedir}/libxml2|-I${includedir}|' "${INSTALL_DIR}/lib/pkgconfig/libxml-2.0.pc"
 
     find "${INSTALL_DIR}/lib/cmake" -type f \
