@@ -10,26 +10,26 @@ RUN set -euxo pipefail >/dev/null \
 && if [[ "$DOCKER_BASE_IMAGE" != centos* ]] && [[ "$DOCKER_BASE_IMAGE" != *manylinux2014* ]]; then exit 0; fi \
 && sed -i "s/enabled=1/enabled=0/g" "/etc/yum/pluginconf.d/fastestmirror.conf" \
 && sed -i "s/enabled=1/enabled=0/g" "/etc/yum/pluginconf.d/ovl.conf" \
-&& yum clean all \
-&& yum -y install epel-release \
+&& yum clean all >/dev/null \
+&& yum install -y epel-release >/dev/null \
+&& yum remove -y \
+  devtoolset* \
+  gcc* \
+  llvm-toolset* \
+>/dev/null \
 && yum install -y \
-  autoconf \
-  automake \
   bash \
   ca-certificates \
   curl \
+  devtoolset-11 \
   git \
-  libtool \
   make \
+  parallel \
   sudo \
   tar \
   xz \
-> /dev/null \
-&& yum remove -y \
-  gcc* \
-  devtoolset-10* \
-> /dev/null \
-&& yum clean all > /dev/null \
+>/dev/null \
+&& yum clean all >/dev/null \
 && rm -rf /var/cache/yum
 
 RUN set -euxo pipefail >/dev/null \
@@ -40,9 +40,11 @@ RUN set -euxo pipefail >/dev/null \
   bash \
   ca-certificates \
   curl \
+  g++ \
   gcc \
   git \
   make \
+  parallel \
   sudo \
   tar \
   xz-utils \
@@ -51,10 +53,13 @@ RUN set -euxo pipefail >/dev/null \
 && apt-get clean autoclean >/dev/null \
 && apt-get autoremove --yes >/dev/null
 
+ENV CCACHE_DIR="/cache/ccache"
+ENV CCACHE_NOCOMPRESS="1"
+ENV CCACHE_MAXSIZE="50G"
 RUN set -euxo pipefail >/dev/null \
-&& curl -fsSL "https://github.com/binarylandia/build_gcc-musl-cross/releases/download/gcc-9.4.0-musl-1.2.5-20241028071857/gcc-9.4.0-musl-1.2.5-x86_64-unknown-linux-musl-20241028071857.tar.xz" | tar -C "/usr" -xJ \
-&& which x86_64-unknown-linux-musl-gcc \
-&& /usr/bin/x86_64-unknown-linux-musl-gcc -v
+&& curl -fsSL "https://github.com/ccache/ccache/releases/download/v4.10.2/ccache-4.10.2-linux-x86_64.tar.xz" | tar --strip-components=1 -C "/usr/bin" -xJ "ccache-4.10.2-linux-x86_64/ccache" \
+&& which ccache \
+&& ccache --version
 
 RUN set -euxo pipefail >/dev/null \
 && curl -fsSL "https://github.com/Kitware/CMake/releases/download/v3.30.5/cmake-3.30.5-linux-x86_64.tar.gz" | tar -C "/usr" -xz --strip-components=1 \
@@ -62,7 +67,7 @@ RUN set -euxo pipefail >/dev/null \
 && cmake --version
 
 RUN set -euxo pipefail >/dev/null \
-&& curl -fsSL "https://github.com/binarylandia/build_zlib/releases/download/zlib-1.3.1-static-20241028131008/zlib-1.3.1-static-20241028131008.tar.xz" | tar -C "/usr" -xJ \
+&& curl -fsSL "https://github.com/binarylandia/build_zlib/releases/download/zlib-1.3.1-static-20241031101352/zlib-1.3.1-static-20241031101352.tar.xz" | tar -C "/usr" -xJ \
 && ls /usr/include/zlib.h \
 && ls /usr/lib/libz.a
 
@@ -92,3 +97,5 @@ RUN set -euxo pipefail >/dev/null \
 
 
 USER ${USER}
+
+ENTRYPOINT ["scl", "enable", "devtoolset-11", "--"]

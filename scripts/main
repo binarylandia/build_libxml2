@@ -2,12 +2,12 @@
 
 set -euxo pipefail
 
-XML2_REPO_URL="https://gitlab.gnome.org/GNOME/libxml2"
+REPO_URL="https://gitlab.gnome.org/GNOME/libxml2.git"
 VERSION="2.12.9"
 BRANCH="v${VERSION}"
 
 BUILD_DIR=".build"
-INSTALL_DIR="/opt/xml2"
+INSTALL_DIR="/opt/libxml2"
 OUT_DIR=".out"
 
 NICE="nice -19 ionice -c2 -n5"
@@ -32,47 +32,17 @@ function package() {
     | ${NICE} xz -T0 -k > "${output_tarball}"
 }
 
-write_version() {
-  filepath="${1}"
-
-  cat > "$filepath" << EOF
-${XML2_REPO_URL}
-${BRANCH}
-$(git rev-parse HEAD)
-$(git describe --always --dirty)
-$(git describe --always --dirty --tags)
-$(git describe --always --dirty --tags --all)
-${build_time}
-EOF
-}
-
 build_dir="$(abspath ${BUILD_DIR})"
 mkdir -p "${build_dir}"
 outdir="$(abspath "${OUT_DIR}")"
 mkdir -p "${outdir}"
 
 pushd "$build_dir" >/dev/null
-  src_dir="xml2-${BRANCH}"
+  src_dir="libxml2-${BRANCH}"
 
   if [ ! -d "${src_dir}" ]; then
-    git clone --recursive --depth=100 -b "${BRANCH}" "${XML2_REPO_URL}" "${src_dir}"
+    git clone --recursive --depth=100 -b "${BRANCH}" "${REPO_URL}" "${src_dir}"
   fi
-
-  export CFLAGS="-w -g0 -O2 -fPIC --static -static -Bstatic --sysroot=/usr ${CFLAGS:-}"
-  export CXXFLAGS="-w -g0 -O2  -fPIC --static -static -Bstatic --sysroot=/usr ${CXXFLAGS:-}"
-  export LDFLAGS="-w --static -static -static-libgcc --sysroot=/usr ${LDFLAGS:-}"
-
-  export CC="/usr/bin/x86_64-unknown-linux-musl-gcc"
-  export CXX="/usr/bin/x86_64-unknown-linux-musl-g++"
-  export FC="/usr/bin/x86_64-unknown-linux-musl-gfortran"
-  export AR="/usr/bin/x86_64-unknown-linux-musl-ar"
-  export AS="/usr/bin/x86_64-unknown-linux-musl-as"
-  export LD="/usr/bin/x86_64-unknown-linux-musl-ld"
-  export NM="/usr/bin/x86_64-unknown-linux-musl-nm"
-  export OBJCOPY="/usr/bin/x86_64-unknown-linux-musl-objcopy"
-  export OBJDUMP="/usr/bin/x86_64-unknown-linux-musl-objdump"
-  export RANLIB="/usr/bin/x86_64-unknown-linux-musl-ranlib"
-  export STRIP="/usr/bin/x86_64-unknown-linux-musl-strip"
 
   pushd "${src_dir}" >/dev/null
     ${NICE} cmake -S "." -B "build" \
@@ -83,16 +53,14 @@ pushd "$build_dir" >/dev/null
       -DCMAKE_INSTALL_INCLUDEDIR="include" \
       -DCMAKE_BUILD_TYPE="Release" \
       -DCMAKE_VERBOSE_MAKEFILE="OFF" \
-      -DCMAKE_C_FLAGS="$CFLAGS" \
-      -DCMAKE_CXX_FLAGS="$CXXFLAGS" \
-      -DCMAKE_EXE_LINKER_FLAGS="$LDFLAGS" \
       \
       -DBUILD_SHARED_LIBS="OFF" \
+      -DBUILD_STATIC_LIBS="ON" \
       \
       -DLIBXML2_WITH_ICONV="OFF" \
       -DLIBXML2_WITH_LZMA="OFF" \
       -DLIBXML2_WITH_PYTHON="OFF" \
-      -DLIBXML2_WITH_ZLIB="OFF" \
+      -DLIBXML2_WITH_ZLIB="ON" \
       2>&1 | log "build.log"
 
     ${NICE} cmake --build "build" --parallel="${JOBS}" 2>&1 | log "build.log"
@@ -107,11 +75,9 @@ pushd "$build_dir" >/dev/null
     find "${INSTALL_DIR}/lib/cmake" -type f \
       -exec sed -i'' 's|set(LIBXML2_INCLUDE_DIR    ${PACKAGE_PREFIX_DIR}/include/libxml2)|set(LIBXML2_INCLUDE_DIR    ${PACKAGE_PREFIX_DIR}/include)|g; s|INTERFACE_INCLUDE_DIRECTORIES "${_IMPORT_PREFIX}/include/libxml2"|INTERFACE_INCLUDE_DIRECTORIES "${_IMPORT_PREFIX}/include"|g' {} +
 
-
-    write_version "${INSTALL_DIR}/version.txt"
     cp "build.log" "${INSTALL_DIR}/"
 
-    package "${INSTALL_DIR}" "${outdir}/xml2-${VERSION}-static-${build_time}.tar.xz"
+    package "${INSTALL_DIR}" "${outdir}/libxml2-${VERSION}-static-${build_time}.tar.xz"
   popd >/dev/null
 popd >/dev/null
 
